@@ -1,64 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+// Agar Buttons komponentingiz boshqa papkada bo'lsa, yo'lini tekshirib oling:
+import Buttons from "./components/Buttons";
 
-const UserCard = ({ user, isEditing, onEdit, onDelete }) => {
-  return (
-    <div
-      className={`bg-white p-6 rounded-xl shadow-md border flex flex-col justify-between gap-4 transition transform hover:-translate-y-1 hover:shadow-lg ${
-        isEditing ? "border-amber-400 ring-2 ring-amber-100" : "border-gray-100"
-      }`}
-    >
-      <div>
-        <div className="flex items-center gap-3 border-b pb-2 border-gray-100">
-          <div
-            className={`w-10 h-10 font-bold rounded-full flex items-center justify-center uppercase ${
-              isEditing
-                ? "bg-amber-100 text-amber-600"
-                : "bg-blue-100 text-blue-600"
-            }`}
-          >
-            {user.firstName[0]}
-          </div>
-          <div className="overflow-hidden">
-            <h4 className="font-bold text-gray-800 truncate">
-              {user.firstName} {user.lastName}
-            </h4>
-          </div>
-        </div>
-
-        <div className="space-y-1.5 text-sm text-gray-600 mt-3">
-          <p className="break-all">
-            <span className="font-semibold text-gray-700">Email:</span>{" "}
-            {user.email}
-          </p>
-          <p>
-            <span className="font-semibold text-gray-700">Password:</span>{" "}
-            <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded text-xs">
-              {user.password}
-            </span>
-          </p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 border-t pt-3 border-gray-100 mt-auto">
-        <button
-          onClick={() => onEdit(user)}
-          className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-700 font-medium py-1.5 px-3 rounded-lg text-sm transition duration-150 border border-amber-200"
-        >
-          Tahrirlash
-        </button>
-        <button
-          onClick={() => onDelete(user.id)}
-          className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-medium py-1.5 px-3 rounded-lg text-sm transition duration-150 border border-rose-200"
-        >
-          O'chirish
-        </button>
-      </div>
-    </div>
-  );
-};
-
-// --- ASOSIY FORMA KOMPONENTI ---
-const Form = () => {
+const Form = ({ currentUser, onSave, onCancel, title }) => {
+  // Inputlar ichidagi qiymatlarni saqlash uchun state
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -66,62 +11,49 @@ const Form = () => {
     password: "",
   });
 
-  const [submittedData, setSubmittedData] = useState([]);
-  const [editId, setEditId] = useState(null);
+  // Tahrirlash tugmasi bosilganda inputlarni foydalanuvchi ma'lumotlari bilan to'ldirish
+  useEffect(() => {
+    if (currentUser) {
+      setFormData({
+        firstName: currentUser.name || "",
+        lastName: currentUser.lastName || "",
+        email: currentUser.email || "",
+        password: currentUser.password || "",
+      });
+    } else {
+      // Aks holda inputlarni bo'shatish
+      setFormData({ firstName: "", lastName: "", email: "", password: "" });
+    }
+  }, [currentUser]);
 
+  // Inputlarga biror narsa yozilganda formData'ni yangilab boruvchi funksiya
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => ({ ...prevData, [name]: value }));
   };
 
+  // Forma yuborilganda (Submit bo'lganda)
   const handleSubmit = (e) => {
     e.preventDefault();
+    onSave(formData); // Ma'lumotlarni App.jsx ga jo'natish
 
-    if (editId) {
-      setSubmittedData((prevList) =>
-        prevList.map((user) =>
-          user.id === editId ? { ...formData, id: editId } : user,
-        ),
-      );
-      setEditId(null);
-    } else {
-      setSubmittedData((prevList) => [
-        ...prevList,
-        { ...formData, id: Date.now() },
-      ]);
-    }
-
-    setFormData({ firstName: "", lastName: "", email: "", password: "" });
-  };
-
-  const handleDelete = (id) => {
-    setSubmittedData((prevList) => prevList.filter((user) => user.id !== id));
-    if (editId === id) {
-      setEditId(null);
+    // Agar yangi foydalanuvchi qo'shilayotgan bo'lsa, yuborilgandan keyin inputlarni tozalaymiz
+    if (!currentUser) {
       setFormData({ firstName: "", lastName: "", email: "", password: "" });
     }
   };
 
-  const handleEdit = (user) => {
-    setEditId(user.id);
-    setFormData({
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      password: user.password,
-    });
-  };
-
   return (
-    <div className="min-h-screen bg-gray-100 p-6 flex flex-col items-center gap-10">
-      {/* Form qismi */}
-      <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
-        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
-          {editId ? "Ma'lumotni tahrirlash" : "Ro'yxatdan o'tish"}
-        </h2>
+    <div className="w-full max-w-7xl mx-auto px-2 bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
+      {/* Dinamik sarlavha (Yangi qo'shish yoki Tahrirlash) */}
+      <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
+        {title}
+      </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* FIRST NAME VA LAST NAME INPUTLARI */}
+        <div className="flex gap-10 w-full items-center justify-between">
+          <div className="flex flex-col w-[50%]">
             <label className="text-sm font-medium text-gray-700 block mb-1">
               Name
             </label>
@@ -136,7 +68,7 @@ const Form = () => {
             />
           </div>
 
-          <div>
+          <div className="flex flex-col w-[50%]">
             <label className="text-sm font-medium text-gray-700 block mb-1">
               Last Name
             </label>
@@ -150,8 +82,11 @@ const Form = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
           </div>
+        </div>
 
-          <div>
+        {/* EMAIL VA PASSWORD INPUTLARI */}
+        <div className="flex gap-10 w-full items-center justify-between">
+          <div className="flex flex-col w-[50%]">
             <label className="text-sm font-medium text-gray-700 block mb-1">
               Email
             </label>
@@ -160,13 +95,13 @@ const Form = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="example@mail.com"
+              placeholder="Email manzilingizni kiriting"
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
           </div>
 
-          <div>
+          <div className="flex flex-col w-[50%]">
             <label className="text-sm font-medium text-gray-700 block mb-1">
               Password
             </label>
@@ -180,38 +115,28 @@ const Form = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             />
           </div>
-
-          <button
-            type="submit"
-            className={`w-full mt-2 text-white font-semibold py-2.5 px-4 rounded-lg transition duration-200 shadow-md ${
-              editId
-                ? "bg-amber-500 hover:bg-amber-600"
-                : "bg-blue-600 hover:bg-blue-700"
-            }`}
-          >
-            {editId ? "Yangilash" : "Yuborish"}
-          </button>
-        </form>
-      </div>
-
-      {submittedData.length > 0 && (
-        <div className="w-full max-w-4xl">
-          <h3 className="text-xl font-bold text-gray-800 mb-4 text-center md:text-left">
-            Foydalanuvchilar Ro'yxati
-          </h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {submittedData.map((user) => (
-              <UserCard
-                key={user.id}
-                user={user}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            ))}
-          </div>
         </div>
-      )}
+
+        {/* TUGMALAR QISMI */}
+        <div className="flex justify-end gap-2 pt-2">
+          {/* Agar tahrirlash rejimi bo'lsa (currentUser mavjud bo'lsa), Bekor qilish tugmasi chiqadi */}
+          {currentUser && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="text-gray-700 font-semibold py-2 px-4 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
+            >
+              Bekor qilish
+            </button>
+          )}
+          {/* Agar tahrirlash bo'lsa "Saqlash", yangi bo'lsa "Yuborish" matni chiqadi */}
+          <Buttons
+            text={currentUser ? "Saqlash" : "Yuborish"}
+            type="submit"
+            variant="primary"
+          />
+        </div>
+      </form>
     </div>
   );
 };
